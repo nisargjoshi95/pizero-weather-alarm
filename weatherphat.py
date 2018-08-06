@@ -160,11 +160,11 @@ class FrameAnimation:
   def stop(self):
     self.running = False
 
-base = FrameAnimation(height=uhH, width=uhW)
-def stopBase():
-  time.sleep(5)
-  base.stop()
-runInParallel(base.run, stopBase)
+# base = FrameAnimation(height=uhH, width=uhW)
+# def stopBase():
+#   time.sleep(5)
+#   base.stop()
+# runInParallel(base.run, stopBase)
 
 # grid = clearGrid()
 # updateDisplay(grid)
@@ -188,5 +188,11 @@ def stopFlash():
   flash.stop()
 runInParallel(flash.run, stopFlash)
 
-# class RainAnimation(FrameAnimation):
-#   def generateAnimation(self):
+class RainAnimation(FrameAnimation):
+  # 10s animation - 8 fps
+  def generateAnimation(self):
+    dropColumn
+    dropLength
+    for i in range(80):
+      frame = Frame(self.height, self.width)
+      frame.setAllPixels((63, 63, 126))
