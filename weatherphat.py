@@ -3,6 +3,7 @@ import time
 import geocoder
 from weather import Weather, Unit
 from random import randint
+from multiprocessing import Process
 
 try:
   import numpy
@@ -68,6 +69,16 @@ WEATHER_STATUS = {
   47: "isolated thundershowers",
   3200: "not available"
 }
+
+
+def runInParallel(*fns):
+  proc = []
+  for fn in fns:
+    p = Process(target=fn)
+    p.start()
+    proc.append(p)
+  for p in proc:
+    p.join()
 
 # print(location.latlng)
 
@@ -149,6 +160,12 @@ class FrameAnimation:
   def stop(self):
     self.running = False
 
+base = FrameAnimation(height=uhH, width=uhW)
+def stopBase():
+  time.sleep(5)
+  base.stop()
+runInParallel(base.run, stopBase)
+
 # grid = clearGrid()
 # updateDisplay(grid)
 # while True:
@@ -156,5 +173,20 @@ class FrameAnimation:
 #   time.sleep(0.25)
 #   updateDisplay(grid)
 
-testAnimation = FrameAnimation(height=uhH, width=uhW)
-testAnimation.run()
+class FlashAnimation(FrameAnimation):
+  # 4 flashes per second
+  def generateAnimation(self):
+    for i in range(4):
+      frame = Frame(self.height, self.width)
+      frame.setAllPixels((0, 0, 0)) if i % 2 == 1 else frame.setAllPixels((255, 255, 255))
+      self.animation.append(frame)
+    self.pauses = [0.25] * 4
+
+flash = FlashAnimation(height=uhH, width=uhW)
+def stopFlash():
+  time.sleep(5)
+  flash.stop()
+runInParallel(flash.run, stopFlash)
+
+# class RainAnimation(FrameAnimation):
+#   def generateAnimation(self):
