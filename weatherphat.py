@@ -1,4 +1,5 @@
 import unicornhat as uh
+import threading
 import time
 import geocoder
 from weather import Weather, Unit
@@ -13,7 +14,7 @@ except ImportError:
 # location = geocoder.ip('me')
 # weather = Weather(unit=Unit.CELSIUS)
 
-uh.rotation(0)
+uh.rotation(180)
 uh.brightness(0.5)
 uh.set_layout(uh.AUTO)
 uhW,uhH=uh.get_shape()
@@ -70,16 +71,6 @@ WEATHER_STATUS = {
   3200: "not available"
 }
 
-
-def runInParallel(*fns):
-  proc = []
-  for fn in fns:
-    p = Process(target=fn)
-    p.start()
-    proc.append(p)
-  for p in proc:
-    p.join()
-
 # print(location.latlng)
 
 # lookup = weather.lookup_by_latlng(location.latlng[0], location.latlng[1])
@@ -87,6 +78,8 @@ def runInParallel(*fns):
 # print(condition.text)
 
 # print(lookup.title)
+animationFlag = False
+c = threading.Condition()
 
 class Frame:
   def __init__(self, h, w):
@@ -127,6 +120,8 @@ class FrameAnimation:
     self.width = width
     self.running = False
     self.generateAnimation()
+    self.thread = threading.Thread(target=self.__updateDisplay, args=())
+    self.thread.daemon = True
 
   # this function should be overriden in child classes with
   # specific animation logic
@@ -143,10 +138,14 @@ class FrameAnimation:
       self.animation.append(frame)
     self.pauses = [0.5 / self.height] * self.height
 
-  def run(self):
-    self.running = True
+  def __updateDisplay(self):
+    global animationFlag
+    global c
+    c.acquire()
+    animationFlag = True
+    c.notify_all()
     count = 0
-    while(self.running):
+    while(animationFlag):
       print(count, self.pauses[count])
       frame = self.animation[count]
       uh.set_pixels(frame.getGrid())
@@ -156,6 +155,15 @@ class FrameAnimation:
         count += 1
       else:
         count = 0
+      print(animationFlag)
+      if animationFlag == False:
+        c.release()
+        break
+      else:
+        c.wait()
+
+  def run(self):
+    self.thread.start()
 
   def stop(self):
     self.running = False
@@ -182,17 +190,34 @@ class FlashAnimation(FrameAnimation):
       self.animation.append(frame)
     self.pauses = [0.25] * 4
 
-flash = FlashAnimation(height=uhH, width=uhW)
-def stopFlash():
-  time.sleep(5)
-  flash.stop()
-runInParallel(flash.run, stopFlash)
+# flash = FlashAnimation(height=uhH, width=uhW)
+# def stopFlash():
+#   time.sleep(5)
+#   flash.stop()
+# runInParallel(flash.run, stopFlash)
 
 class RainAnimation(FrameAnimation):
   # 10s animation - 8 fps
   def generateAnimation(self):
-    dropColumn
-    dropLength
-    for i in range(80):
+    # dropColumn
+    # dropLength
+    # for i in range(80):
+    #   frame = Frame(self.height, self.width)
+    #   frame.setAllPixels((63, 63, 126))
+    row = 0
+    for i in range(self.height * 8):
       frame = Frame(self.height, self.width)
-      frame.setAllPixels((63, 63, 126))
+      frame.setAllPixels((126,126,126))
+      if row == self.height - 1:
+        row = 0
+      else:
+        row += 1
+      frame.setRow(row, [(63, 63, 126)] * self.width)
+      print(frame.getGrid())
+      if i == 20:
+        uh.set_all((63, 63, 63))
+      self.animation.append(frame)
+    self.pauses = [10 / self.height * 8] * self.height
+
+rain = RainAnimation(height=uhH, width=uhW)
+rain.run()
